@@ -15,88 +15,96 @@ app.get("/api/v1/offering", async (req, res) => {
     const data = [];
     const elements = document.querySelectorAll(".pricing-box");
 
-    elements.forEach((element) => {
-      const companyNameElement = element.querySelector("h5.nobottommargin");
-      const companyTypeElement = element.querySelector("span.label");
-      const listItems = element.querySelectorAll(
-        "div.pricing-features > ul > li"
-      );
+    if (elements) {
+      elements.forEach((element) => {
+        const companyNameElement = element.querySelector("h5.nobottommargin");
+        const companyTypeElement = element.querySelector("span.label");
+        const listItems = element.querySelectorAll(
+          "div.pricing-features > ul > li"
+        );
 
-      let companySector = "";
-      let offeringPeriod = "";
-      let companyType = "";
-      let prospectusLink = "";
-      let additionalInfoLink = "";
-      let keyId = "";
+        let companySector = "";
+        let offeringPeriod = "";
+        let companyType = "";
+        let prospectusLink = "";
+        let additionalInfoLink = "";
+        let keyId = "";
 
-      listItems.forEach((item) => {
-        const titleElement = item.querySelector("h5.nobottommargin");
-        const valueElement = item.querySelector("p.notopmargin");
+        listItems.forEach((item) => {
+          const titleElement = item.querySelector("h5.nobottommargin");
+          const valueElement = item.querySelector("p.notopmargin");
 
-        if (titleElement && valueElement) {
-          const titleText = titleElement.textContent.trim();
-          const valueText = valueElement.textContent.trim();
+          if (titleElement && valueElement) {
+            const titleText = titleElement.textContent.trim();
+            const valueText = valueElement.textContent.trim();
 
-          if (titleText === "Sektor") {
-            companySector = valueText;
-          } else if (titleText === "Periode Penawaran") {
-            offeringPeriod = valueText;
-          } else if (titleText === "Prospektus") {
-            prospectusLink = item.querySelector("a").getAttribute("href");
-          } else if (titleText === "Informasi Lainnya") {
-            additionalInfoLink = item.querySelector("a").getAttribute("href");
+            if (titleText === "Sektor") {
+              companySector = valueText;
+            } else if (titleText === "Periode Penawaran") {
+              offeringPeriod = valueText;
+            } else if (titleText === "Prospektus") {
+              prospectusLink = item.querySelector("a").getAttribute("href");
+            } else if (titleText === "Informasi Lainnya") {
+              additionalInfoLink = item.querySelector("a").getAttribute("href");
+            }
           }
+        });
+
+        if (companyNameElement && companySector && offeringPeriod) {
+          const fullText = companyNameElement.textContent.trim();
+          const codeMatch = fullText.match(/\(([^)]+)\)/);
+          const companyCode = codeMatch ? codeMatch[1] : "N/A";
+          let companyName = fullText.replace(/\([^)]+\)/, "").trim();
+
+          const tbkIndex = companyName.indexOf("Tbk");
+          if (tbkIndex !== -1) {
+            companyName = companyName.substring(0, tbkIndex + 3).trim();
+          }
+
+          if (companyTypeElement) {
+            companyType = companyTypeElement.textContent.includes("Syariah")
+              ? "Syariah"
+              : "Non Syariah";
+          } else {
+            companyType = "Non Syariah";
+          }
+
+          const url = additionalInfoLink;
+          const startIndex = url.indexOf("id=");
+          if (startIndex !== -1) {
+            const idString = url.substring(startIndex + 3);
+
+            const id = idString.split("&")[0];
+            keyId = id;
+          } else {
+            console.log("Parameter 'id' tidak ditemukan dalam URL");
+          }
+
+          data.push({
+            id: keyId,
+            name: companyName,
+            code: companyCode,
+            type: companyType,
+            sector: companySector,
+            period: offeringPeriod,
+            prospectusLink: prospectusLink,
+            additionalInfoLink: additionalInfoLink,
+          });
         }
       });
 
-      if (companyNameElement && companySector && offeringPeriod) {
-        const fullText = companyNameElement.textContent.trim();
-        const codeMatch = fullText.match(/\(([^)]+)\)/);
-        const companyCode = codeMatch ? codeMatch[1] : "N/A";
-        let companyName = fullText.replace(/\([^)]+\)/, "").trim();
-
-        const tbkIndex = companyName.indexOf("Tbk");
-        if (tbkIndex !== -1) {
-          companyName = companyName.substring(0, tbkIndex + 3).trim();
-        }
-
-        if (companyTypeElement) {
-          companyType = companyTypeElement.textContent.includes("Syariah")
-            ? "Syariah"
-            : "Non Syariah";
-        } else {
-          companyType = "Non Syariah";
-        }
-
-        const url = additionalInfoLink;
-        const startIndex = url.indexOf("id=");
-        if (startIndex !== -1) {
-          const idString = url.substring(startIndex + 3);
-
-          const id = idString.split("&")[0];
-          keyId = id;
-        } else {
-          console.log("Parameter 'id' tidak ditemukan dalam URL");
-        }
-
-        data.push({
-          id: keyId,
-          name: companyName,
-          code: companyCode,
-          type: companyType,
-          sector: companySector,
-          period: offeringPeriod,
-          prospectusLink: prospectusLink,
-          additionalInfoLink: additionalInfoLink,
-        });
-      }
-    });
-
-    res.send({
-      status: "success",
-      message: "Data berhasil didapatkan",
-      data: data,
-    });
+      res.send({
+        status: "success",
+        message: "Data berhasil didapatkan",
+        data: data,
+      });
+    } else {
+      res.send({
+        status: "success",
+        message: "Data berhasil didapatkan",
+        data: "Tidak ada data",
+      });
+    }
   } catch (error) {
     console.error("Error fetching data:", error);
     res.status(500).send({
