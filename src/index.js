@@ -114,4 +114,8 @@ app.get("/api/v1/offering", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("Hello!");
+});
+
 app.listen(port, () => console.log(`API IPO Saham listening on port ${port}!`));
