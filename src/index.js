@@ -119,3 +119,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(port, () => console.log(`API IPO Saham listening on port ${port}!`));
+
+export default app;
