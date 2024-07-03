@@ -5,7 +5,7 @@ import { JSDOM } from "jsdom";
 const app = express();
 const port = 3000;
 
-app.get("/api/index", async (req, res) => {
+app.get("/api/v1/offering", async (req, res) => {
   try {
     const html = await cloudscraper.get("https://www.e-ipo.co.id/id/ipo/index");
 
@@ -17,13 +17,19 @@ app.get("/api/index", async (req, res) => {
 
     elements.forEach((element) => {
       const companyNameElement = element.querySelector("h5.nobottommargin");
-      const companyCodeElement = element.querySelector("span.label");
-      const listItems = element.querySelectorAll("div.pricing-features > ul > li");
+      const companyTypeElement = element.querySelector("span.label");
+      const listItems = element.querySelectorAll(
+        "div.pricing-features > ul > li"
+      );
 
       let companySector = "";
       let offeringPeriod = "";
+      let companyType = "";
+      let prospectusLink = "";
+      let additionalInfoLink = "";
+      let keyId = "";
 
-      listItems.forEach(item => {
+      listItems.forEach((item) => {
         const titleElement = item.querySelector("h5.nobottommargin");
         const valueElement = item.querySelector("p.notopmargin");
 
@@ -33,13 +39,17 @@ app.get("/api/index", async (req, res) => {
 
           if (titleText === "Sektor") {
             companySector = valueText;
-          } else if (titleText === "Tanggal Pencatatan") {
+          } else if (titleText === "Periode Penawaran") {
             offeringPeriod = valueText;
+          } else if (titleText === "Prospektus") {
+            prospectusLink = item.querySelector("a").getAttribute("href");
+          } else if (titleText === "Informasi Lainnya") {
+            additionalInfoLink = item.querySelector("a").getAttribute("href");
           }
         }
       });
 
-      if (companyNameElement && companyCodeElement && companySector && offeringPeriod) {
+      if (companyNameElement && companySector && offeringPeriod) {
         const fullText = companyNameElement.textContent.trim();
         const codeMatch = fullText.match(/\(([^)]+)\)/);
         const companyCode = codeMatch ? codeMatch[1] : "N/A";
@@ -50,14 +60,34 @@ app.get("/api/index", async (req, res) => {
           companyName = companyName.substring(0, tbkIndex + 3).trim();
         }
 
-        const companyType = companyCodeElement.textContent.trim();
+        if (companyTypeElement) {
+          companyType = companyTypeElement.textContent.includes("Syariah")
+            ? "Syariah"
+            : "Non Syariah";
+        } else {
+          companyType = "Non Syariah";
+        }
+
+        const url = additionalInfoLink;
+        const startIndex = url.indexOf("id=");
+        if (startIndex !== -1) {
+          const idString = url.substring(startIndex + 3);
+
+          const id = idString.split("&")[0];
+          keyId = id;
+        } else {
+          console.log("Parameter 'id' tidak ditemukan dalam URL");
+        }
 
         data.push({
+          id: keyId,
           name: companyName,
           code: companyCode,
           type: companyType,
           sector: companySector,
-          offering_period: offeringPeriod,
+          period: offeringPeriod,
+          prospectusLink: prospectusLink,
+          additionalInfoLink: additionalInfoLink,
         });
       }
     });
